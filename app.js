@@ -294,6 +294,17 @@ class VolunteerCopilotApp {
 
   renderCanvas() {
     if (!this.canvas || !this.ctx) return;
+    if (this.rafPending) return;
+    this.rafPending = true;
+
+    window.requestAnimationFrame(() => {
+      this.rafPending = false;
+      this.drawCanvasContent();
+    });
+  }
+
+  drawCanvasContent() {
+    if (!this.canvas || !this.ctx) return;
     const ctx = this.ctx;
     const w = this.canvas.width = this.canvas.parentElement.clientWidth || 600;
     const h = this.canvas.height = 380;

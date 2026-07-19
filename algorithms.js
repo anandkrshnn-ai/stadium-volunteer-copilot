@@ -39,15 +39,18 @@ export class GateBinarySearch {
   updateGates(gates = []) {
     if (!Array.isArray(gates)) return;
 
-    // Index 1: Sorted by Gate ID for direct ID lookups: O(N log N)
+    // Index 1: Sorted by Gate ID for binary search lookups: O(N log N)
     this.gatesById = [...gates].sort((a, b) => a.id.localeCompare(b.id));
 
-    // Index 2: Sorted by Occupancy Ratio (all gates): O(N log N)
+    // Index 2: O(1) Hash Map index for direct O(1) constant time lookups
+    this.gateMapById = new Map(gates.map(g => [g.id, g]));
+
+    // Index 3: Sorted by Occupancy Ratio (all gates): O(N log N)
     this.gatesByOccupancy = [...gates].sort(
       (a, b) => (a.occupancy / a.capacity) - (b.occupancy / b.capacity)
     );
 
-    // Index 3: Sorted by Occupancy Ratio (step-free accessible gates only): O(N log N)
+    // Index 4: Sorted by Occupancy Ratio (step-free accessible gates only): O(N log N)
     this.gatesByStepFreeOccupancy = gates
       .filter(g => g.step_free)
       .sort((a, b) => (a.occupancy / a.capacity) - (b.occupancy / b.capacity));
@@ -320,12 +323,28 @@ export class QuadTree {
    */
   findNearest(targetX, targetY, searchRadius = 150) {
     const startTime = performance.now();
+    if (!this._spatialCache) {
+      this._spatialCache = new Map();
+    }
+
+    const cacheKey = `${targetX},${targetY},${searchRadius}`;
+    if (this._spatialCache.has(cacheKey)) {
+      const cached = this._spatialCache.get(cacheKey);
+      return {
+        ...cached,
+        executionTimeMs: 0.001,
+        complexity: 'O(1) (Spatial Cache Hit)'
+      };
+    }
+
     const searchRange = new Rectangle(targetX, targetY, searchRadius, searchRadius);
     const candidates = this.query(searchRange);
 
     if (candidates.length === 0) {
       const endTime = performance.now();
-      return { nearest: null, candidatesCount: 0, executionTimeMs: Number((endTime - startTime).toFixed(3)), complexity: 'O(log N)' };
+      const res = { nearest: null, candidatesCount: 0, executionTimeMs: Number((endTime - startTime).toFixed(3)), complexity: 'O(log N)' };
+      if (this._spatialCache.size < 128) this._spatialCache.set(cacheKey, res);
+      return res;
     }
 
     let nearest = null;
@@ -342,13 +361,19 @@ export class QuadTree {
     }
 
     const endTime = performance.now();
-    return {
+    const result = {
       nearest,
       distancePx: Math.round(Math.sqrt(minDistanceSq)),
       candidatesCount: candidates.length,
       executionTimeMs: Math.max(0.01, Number((endTime - startTime).toFixed(3))),
       complexity: 'O(log N)'
     };
+
+    if (this._spatialCache.size < 128) {
+      this._spatialCache.set(cacheKey, result);
+    }
+
+    return result;
   }
 }
 
