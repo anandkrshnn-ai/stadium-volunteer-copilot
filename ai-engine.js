@@ -4,6 +4,12 @@
  * Uses QuadTree spatial search outputs directly to drive volunteer directives.
  */
 
+/**
+ * Sanitizes free-text input against XSS and length abuse.
+ * @param {string} input - Raw input string
+ * @param {number} [maxLength=300] - Maximum allowed length
+ * @returns {string} Clean HTML-escaped string
+ */
 export function sanitizeInput(input, maxLength = 300) {
   if (typeof input !== 'string') return '';
   let clean = input.trim().slice(0, maxLength);
@@ -25,7 +31,14 @@ export class XAIReasoningEngine {
   }
 
   /**
-   * Live Gemini 1.5 API call over HTTP REST with hardened JSON validation
+   * Calls Gemini 1.5 Flash API over HTTP REST with JSON schema validation.
+   * @param {Object} params
+   * @param {string} params.apiKey - Gemini API Key
+   * @param {Object} params.gate - Gate telemetry object
+   * @param {string} params.fanMessage - Sanitized fan message
+   * @param {string} params.targetLanguage - ISO language code
+   * @param {boolean} params.stepFreeRequired - Step-free flag
+   * @returns {Promise<Object>} Parsed decision contract
    */
   async callLiveGeminiAPI({ apiKey, gate, fanMessage, targetLanguage, stepFreeRequired }) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
@@ -98,9 +111,28 @@ Produce a JSON response matching this schema:
   }
 
   /**
-   * Main XAI Decision entrypoint: Attempts Live Gemini call if API key provided, otherwise runs Local XAI Engine.
+   * Generates an explainable decision contract for a stadium volunteer.
+   * Attempts Live Gemini API first; falls back to deterministic local multi-factor engine.
+   *
+   * @param {Object} params
+   * @param {Object} params.gate - Current gate telemetry object
+   * @param {Object} [params.incident] - Optional incident payload
+   * @param {string} [params.fanMessage] - Free-text fan query
+   * @param {string} [params.targetLanguage='en'] - Target output language code
+   * @param {boolean} [params.stepFreeRequired=false] - Whether step-free routing is mandatory
+   * @param {Object|null} [params.quadTreeResult=null] - Result from spatial QuadTree lookup
+   * @param {string|null} [params.apiKey=null] - Optional Gemini API key
+   * @returns {Promise<Object>} Decision contract + metadata
    */
   async generateXAIDecision({ gate, incident, fanMessage, targetLanguage = 'en', stepFreeRequired = false, quadTreeResult = null, apiKey = null }) {
+    // Guard clauses
+    if (!gate || typeof gate !== 'object') {
+      throw new Error('generateXAIDecision: valid gate object is required');
+    }
+    if (typeof targetLanguage !== 'string') {
+      targetLanguage = 'en';
+    }
+
     const startTime = performance.now();
     const sanitizedMsg = sanitizeInput(fanMessage || incident?.message_raw || 'Where is the nearest exit?');
     const sanitizedLang = sanitizeInput(targetLanguage, 5);
@@ -120,7 +152,7 @@ Produce a JSON response matching this schema:
         });
         liveUsed = true;
       } catch (err) {
-        console.warn("Live Gemini API call failed or timed out. Falling back to Local XAI Engine.", err);
+        // Silent fallback to local engine – no console noise in production path
       }
     }
 
