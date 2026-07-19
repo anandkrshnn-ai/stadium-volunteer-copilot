@@ -16,6 +16,16 @@ Traditional stadium software relies on static maps or rigid `IF/ELSE` rule engin
 
 ---
 
+## ⚡ How Judges Can Evaluate in 2 Minutes
+
+1. **Open the Digital Twin**: View real-time 2.5D gate density heatmaps and QuadTree spatial node query metrics.
+2. **Trigger an Operational Surge**: Click **"⚡ Simulate 40k Metro Surge"** to watch Gate C occupancy elevate to 96% and see XAI decision contracts adapt instantly.
+3. **Run Automated Edge Case Suite**: Scroll to the Jury Portal and click **"🧪 Run Automated Edge Case Suite"** to verify 5 edge-case scenarios with live visual Pass/Fail badges.
+4. **Upload Custom Data**: Drag & drop `sample-data.csv` or `sample-data.json` (or any custom stadium telemetry file) into the Jury Upload Portal to verify live data parsing.
+5. **Run Performance Benchmark**: Click **"⚡ Run 1,000-Query Benchmark"** to measure real microsecond throughput (ops/sec) on your machine.
+
+---
+
 ## 🎯 Chosen Vertical & Persona Definition
 
 * **Vertical**: Stadium Operations, Crowd Safety, Transportation, and Inclusive Spectator Experience.
