@@ -1,6 +1,6 @@
 /**
  * Main Application Orchestrator for Stadium Volunteer Copilot
- * Features QuadTree spatial search, real performance timing, input sanitization, and automated edge-case test suite.
+ * Features QuadTree spatial search, live Gemini API integration, input sanitization, and automated edge-case test suite.
  */
 
 import { GateBinarySearch, QuadTree, Point, Rectangle, predictGateCrowdDensity } from './algorithms.js';
@@ -26,7 +26,7 @@ class VolunteerCopilotApp {
     this.buildQuadTree();
     this.setupEventListeners();
     this.setupCanvas();
-    this.runXAIDecision();
+    await this.runXAIDecision();
     this.updateHUDMetrics();
   }
 
@@ -69,20 +69,20 @@ class VolunteerCopilotApp {
     // Language selector
     const langSelect = document.getElementById('lang-select');
     if (langSelect) {
-      langSelect.addEventListener('change', (e) => {
+      langSelect.addEventListener('change', async (e) => {
         this.currentLanguage = e.target.value;
-        this.runXAIDecision();
+        await this.runXAIDecision();
       });
     }
 
-    // Gate Selector dropdown with O(log N) Binary Search lookup
+    // Gate Selector dropdown
     const gateSelect = document.getElementById('gate-select');
     if (gateSelect) {
-      gateSelect.addEventListener('change', (e) => {
+      gateSelect.addEventListener('change', async (e) => {
         const searchResult = this.binarySearchEngine.findGateById(e.target.value);
         if (searchResult.found) {
           this.selectedGate = searchResult.found;
-          this.runXAIDecision();
+          await this.runXAIDecision();
           this.renderCanvas();
         }
       });
@@ -91,9 +91,9 @@ class VolunteerCopilotApp {
     // Step-free toggle
     const stepFreeChk = document.getElementById('step-free-toggle');
     if (stepFreeChk) {
-      stepFreeChk.addEventListener('change', (e) => {
+      stepFreeChk.addEventListener('change', async (e) => {
         this.stepFreeMode = e.target.checked;
-        this.runXAIDecision();
+        await this.runXAIDecision();
       });
     }
 
@@ -119,8 +119,8 @@ class VolunteerCopilotApp {
     const msgInput = document.getElementById('fan-msg-input');
     const analyzeBtn = document.getElementById('btn-analyze-msg');
     if (analyzeBtn && msgInput) {
-      analyzeBtn.addEventListener('click', () => {
-        this.runXAIDecision(msgInput.value);
+      analyzeBtn.addEventListener('click', async () => {
+        await this.runXAIDecision(msgInput.value);
       });
     }
 
@@ -137,7 +137,7 @@ class VolunteerCopilotApp {
     }
   }
 
-  simulateCrowdSurge() {
+  async simulateCrowdSurge() {
     const gateC = this.gates.find(g => g.id === 'G03');
     if (gateC) {
       gateC.occupancy = 17280; // 96%
@@ -146,12 +146,12 @@ class VolunteerCopilotApp {
     }
     this.binarySearchEngine.updateGates(this.gates);
     this.buildQuadTree();
-    this.runXAIDecision("Emergency Metro train arrival! Gate C is completely flooded!");
+    await this.runXAIDecision("Emergency Metro train arrival! Gate C is completely flooded!");
     this.renderCanvas();
     this.updateHUDMetrics();
   }
 
-  onJuryDataLoaded({ gates, sourceFileName }) {
+  async onJuryDataLoaded({ gates, sourceFileName }) {
     this.gates = gates;
     this.selectedGate = gates[0];
     this.binarySearchEngine.updateGates(gates);
@@ -169,29 +169,37 @@ class VolunteerCopilotApp {
       gateSelect.innerHTML = gates.map(g => `<option value="${g.id}">${sanitizeInput(g.name)} (${g.id})</option>`).join('');
     }
 
-    this.runXAIDecision();
+    await this.runXAIDecision();
     this.renderCanvas();
     this.updateHUDMetrics();
   }
 
-  runXAIDecision(customMsg = null) {
+  async runXAIDecision(customMsg = null) {
     if (!this.selectedGate) return;
 
     const rawMsg = customMsg || document.getElementById('fan-msg-input')?.value || "Where is the nearest bathroom and step-free exit?";
     const fanMessage = sanitizeInput(rawMsg);
+    const apiKey = document.getElementById('gemini-api-key-input')?.value || null;
 
     // Actively query Spatial QuadTree for nearest step-free gate
     const quadTreeSearchResult = this.quadTree.findNearest(this.selectedGate.x, this.selectedGate.y, 180);
 
-    const result = this.aiEngine.generateXAIDecision({
+    // Update QuadTree metrics UI display
+    const qtDisplay = document.getElementById('quadtree-metrics-display');
+    if (qtDisplay && quadTreeSearchResult.nearest) {
+      qtDisplay.textContent = `Spatial QuadTree: Nearest Gate ${quadTreeSearchResult.nearest.data.id} (${quadTreeSearchResult.distancePx}px away) resolved in ${quadTreeSearchResult.executionTimeMs}ms`;
+    }
+
+    const result = await this.aiEngine.generateXAIDecision({
       gate: this.selectedGate,
       fanMessage,
       targetLanguage: this.currentLanguage,
       stepFreeRequired: this.stepFreeMode,
-      quadTreeResult: quadTreeSearchResult
+      quadTreeResult: quadTreeSearchResult,
+      apiKey
     });
 
-    // Safe DOM Rendering (Escaped Strings)
+    // Safe DOM Rendering
     const codeDisplay = document.getElementById('xai-code-output');
     if (codeDisplay) {
       codeDisplay.textContent = JSON.stringify(result.decisionContract, null, 2);
@@ -205,6 +213,13 @@ class VolunteerCopilotApp {
     const latencyEl = document.getElementById('hud-latency-val');
     if (latencyEl) {
       latencyEl.textContent = `${result.metadata.latencyMs}ms`;
+    }
+
+    const modelBadge = document.getElementById('ai-model-badge');
+    if (modelBadge) {
+      modelBadge.textContent = result.metadata.model;
+      modelBadge.style.background = result.metadata.liveApiUsed ? 'rgba(67, 122, 34, 0.3)' : 'rgba(84, 180, 184, 0.15)';
+      modelBadge.style.color = result.metadata.liveApiUsed ? '#7cc15a' : 'var(--color-primary)';
     }
   }
 

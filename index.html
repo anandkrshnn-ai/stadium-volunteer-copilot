@@ -117,10 +117,16 @@
           </div>
 
           <div class="twin-container">
-            <div class="twin-canvas-wrapper" role="region" aria-label="Digital Twin Canvas Container">
-              <canvas id="digital-twin-canvas" role="img" aria-label="Interactive 2.5D Digital Twin Stadium Map displaying gate heatmaps, turnstile capacity, and volunteer coordinates" aria-describedby="canvas-desc"></canvas>
-              <div id="canvas-desc" class="sr-only" style="display:none;">Dynamic map showing 8 stadium gates. Red glow indicates critical occupancy above 85 percent, yellow indicates elevated occupancy, and green indicates normal flow.</div>
+            <div>
+              <div class="twin-canvas-wrapper" role="region" aria-label="Digital Twin Canvas Container">
+                <canvas id="digital-twin-canvas" role="img" aria-label="Interactive 2.5D Digital Twin Stadium Map displaying gate heatmaps, turnstile capacity, and volunteer coordinates" aria-describedby="canvas-desc"></canvas>
+                <div id="canvas-desc" class="sr-only" style="display:none;">Dynamic map showing 8 stadium gates. Red glow indicates critical occupancy above 85 percent, yellow indicates elevated occupancy, and green indicates normal flow.</div>
+              </div>
+              <div id="quadtree-metrics-display" style="margin-top:8px; padding:8px 12px; border-radius:8px; background:rgba(84,180,184,0.08); border:1px solid rgba(84,180,184,0.2); font-size:12px; color:var(--color-primary); font-weight:600;">
+                Spatial QuadTree: Initializing spatial node index...
+              </div>
             </div>
+
             <div class="twin-controls">
               <div class="sidebar-card" style="background:rgba(255,255,255,0.02);">
                 <h4>Active Control Controls</h4>
@@ -157,6 +163,9 @@
               <div class="sidebar-card">
                 <h4>Multilingual Fan Query Simulator</h4>
                 <input type="text" id="fan-msg-input" aria-label="Type fan query text" placeholder="Type fan query (e.g., 'Feeling dizzy near Gate C turnstiles')..." style="width:100%; padding:10px; margin-top:8px; border-radius:8px; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); color:#fff;">
+                <div style="margin-top:8px;">
+                  <input type="password" id="gemini-api-key-input" aria-label="Optional Gemini API Key" placeholder="Optional Google Gemini API Key (or leave blank for local fallback)" style="width:100%; padding:8px; font-size:11px; border-radius:6px; background:rgba(0,0,0,0.4); border:1px solid rgba(255,255,255,0.1); color:#aaa;">
+                </div>
                 <button class="primary-btn" id="btn-analyze-msg" style="width:100%; margin-top:8px;" aria-label="Run XAI Reasoning on input">Run XAI Reasoning</button>
               </div>
             </div>
@@ -214,15 +223,18 @@
 
           <section class="panel section-card">
             <div class="section-head">
-              <div>
-                <h3>Explainable AI (XAI) Contract Output</h3>
-                <p>Proves GenAI performs genuine multi-factor reasoning rather than fixed rules.</p>
+              <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                <div>
+                  <h3>Explainable AI (XAI) Contract Output</h3>
+                  <p>Proves GenAI performs genuine multi-factor reasoning rather than fixed rules.</p>
+                </div>
+                <span id="ai-model-badge" class="tag" style="background:rgba(84,180,184,0.15); color:var(--color-primary); font-weight:600;">Gemini 1.5 Pro (Vertex AI Engine)</span>
               </div>
             </div>
-            <div class="decision-board">
+            <div class="decision-board" style="margin-top:16px;">
               <div class="decision-sample">
-                <span>Live Gemini 1.5 Pro Output (JSON Schema Enforced)</span>
-                <code id="xai-code-output" tabindex="0" aria-label="JSON Output from Gemini 1.5 Pro XAI Engine">Loading XAI reasoning engine contract...</code>
+                <span>Live XAI Engine Output (JSON Schema Enforced)</span>
+                <code id="xai-code-output" tabindex="0" aria-label="JSON Output from Gemini XAI Engine">Loading XAI reasoning engine contract...</code>
               </div>
             </div>
           </section>
