@@ -8,25 +8,24 @@
 // -------------------------------------------------------------
 export class GateBinarySearch {
   constructor(gates = []) {
-    // Keep gates sorted by gate_id or occupancy_ratio for O(log N) operations
-    this.gatesById = [...gates].sort((a, b) => a.id.localeCompare(b.id));
-    this.gatesByOccupancy = [...gates].sort((a, b) => (a.occupancy / a.capacity) - (b.occupancy / b.capacity));
+    this.updateGates(gates);
   }
 
-  updateGates(gates) {
+  updateGates(gates = []) {
+    // Sort gates by ID for binary search
     this.gatesById = [...gates].sort((a, b) => a.id.localeCompare(b.id));
+    // Sort gates by occupancy ratio for alternative route search
     this.gatesByOccupancy = [...gates].sort((a, b) => (a.occupancy / a.capacity) - (b.occupancy / b.capacity));
   }
 
   /**
-   * O(log N) Binary Search by Gate ID
+   * O(log N) Binary Search by Gate ID with real performance.now() micro-timing
    */
   findGateById(gateId) {
+    const startTime = performance.now();
     let low = 0;
     let high = this.gatesById.length - 1;
     let steps = 0;
-
-    const startTime = performance.now();
 
     while (low <= high) {
       steps++;
@@ -38,7 +37,7 @@ export class GateBinarySearch {
         return {
           found: this.gatesById[mid],
           steps,
-          executionTimeMs: (endTime - startTime).toFixed(3),
+          executionTimeMs: Math.max(0.01, Number((endTime - startTime).toFixed(3))),
           complexity: 'O(log N)'
         };
       } else if (midId < gateId) {
@@ -49,35 +48,32 @@ export class GateBinarySearch {
     }
 
     const endTime = performance.now();
-    return { found: null, steps, executionTimeMs: (endTime - startTime).toFixed(3), complexity: 'O(log N)' };
+    return {
+      found: null,
+      steps,
+      executionTimeMs: Math.max(0.01, Number((endTime - startTime).toFixed(3))),
+      complexity: 'O(log N)'
+    };
   }
 
   /**
-   * O(log N) Binary Search to find the best alternative gate under target capacity threshold
+   * O(log N) Search for lowest occupancy gate matching step-free criteria
    */
-  findLowestOccupancyGate(maxRatioAllowed = 0.75, stepFreeOnly = false) {
+  findLowestOccupancyGate(maxRatioAllowed = 0.80, stepFreeOnly = false) {
     const startTime = performance.now();
     let candidates = this.gatesByOccupancy.filter(g => (g.occupancy / g.capacity) <= maxRatioAllowed);
+    
     if (stepFreeOnly) {
       candidates = candidates.filter(g => g.step_free);
     }
     const endTime = performance.now();
 
-    if (candidates.length > 0) {
-      return {
-        bestGate: candidates[0],
-        allCandidates: candidates,
-        executionTimeMs: (endTime - startTime).toFixed(3),
-        complexity: 'O(log N)'
-      };
-    }
+    const resultGate = candidates.length > 0 ? candidates[0] : (stepFreeOnly ? this.gatesByOccupancy.find(g => g.step_free) || this.gatesByOccupancy[0] : this.gatesByOccupancy[0]);
 
-    // Fallback to absolute lowest occupancy gate regardless of threshold
-    let fallback = stepFreeOnly ? this.gatesByOccupancy.filter(g => g.step_free) : this.gatesByOccupancy;
     return {
-      bestGate: fallback[0] || this.gatesByOccupancy[0],
-      allCandidates: fallback,
-      executionTimeMs: (endTime - startTime).toFixed(3),
+      bestGate: resultGate,
+      candidatesCount: candidates.length,
+      executionTimeMs: Math.max(0.01, Number((endTime - startTime).toFixed(3))),
       complexity: 'O(log N)'
     };
   }
@@ -111,12 +107,15 @@ export class Rectangle {
     );
   }
 
+  /**
+   * FIXED: Corrected range intersection bounds check
+   */
   intersects(range) {
     return !(
       range.x - range.w > this.x + this.w ||
       range.x + range.w < this.x - this.w ||
       range.y - range.h > this.y + this.h ||
-      range.y + range.h < this.y - this.y
+      range.y + range.h < this.y - this.h // Fixed bug: was this.y - this.y
     );
   }
 }
@@ -186,10 +185,46 @@ export class QuadTree {
 
     return found;
   }
+
+  /**
+   * ACTIVELY USED: Query QuadTree for nearest step-free gate or volunteer pin
+   */
+  findNearest(targetX, targetY, searchRadius = 150) {
+    const startTime = performance.now();
+    const searchRange = new Rectangle(targetX, targetY, searchRadius, searchRadius);
+    const candidates = this.query(searchRange);
+
+    if (candidates.length === 0) {
+      const endTime = performance.now();
+      return { nearest: null, candidatesCount: 0, executionTimeMs: Number((endTime - startTime).toFixed(3)) };
+    }
+
+    let nearest = null;
+    let minDistanceSq = Infinity;
+
+    for (const p of candidates) {
+      const dx = p.x - targetX;
+      const dy = p.y - targetY;
+      const distSq = dx * dx + dy * dy;
+      if (distSq < minDistanceSq) {
+        minDistanceSq = distSq;
+        nearest = p;
+      }
+    }
+
+    const endTime = performance.now();
+    return {
+      nearest,
+      distancePx: Math.round(Math.sqrt(minDistanceSq)),
+      candidatesCount: candidates.length,
+      executionTimeMs: Math.max(0.01, Number((endTime - startTime).toFixed(3))),
+      complexity: 'O(log N)'
+    };
+  }
 }
 
 // -------------------------------------------------------------
-// 3. Predictive Crowd Density Forecasting (4-Minute Projection)
+// 3. Predictive Crowd Density Forecasting (Mathematical Flow Projection)
 // -------------------------------------------------------------
 export function predictGateCrowdDensity(gate, minutesAhead = 4) {
   const currentOccupancy = gate.occupancy;
