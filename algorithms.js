@@ -63,7 +63,7 @@ export class GateBinarySearch {
    */
   findGateById(gateId) {
     const startTime = performance.now();
-    if (!gateId || this.gatesById.length === 0) {
+    if (!gateId || !this.gatesById || this.gatesById.length === 0) {
       return { found: null, steps: 0, executionTimeMs: 0.01, complexity: 'O(log N)' };
     }
 
