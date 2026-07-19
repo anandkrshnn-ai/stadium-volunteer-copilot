@@ -114,24 +114,62 @@ Produce a JSON response matching this schema:
 
     // ========== LOCAL XAI FALLBACK ==========
     if (!decisionContract) {
-      let triageLevel = 'INFO';
+      // --- Multi-Factor Scoring Matrix ---
+      const scores = {
+        MEDICAL_EMERGENCY: 0,
+        CROWD_BOTTLENECK: 0,
+        ACCESSIBILITY_REQUEST: 0,
+        WAYFINDING: 0
+      };
+
+      // Medical signals
+      if (lowerMsg.includes('dizzy') || lowerMsg.includes('fainted') || lowerMsg.includes('chest') || lowerMsg.includes('unconscious')) {
+        scores.MEDICAL_EMERGENCY += 3;
+      }
+      if (lowerMsg.includes('help') || lowerMsg.includes('emergency')) {
+        scores.MEDICAL_EMERGENCY += 2;
+      }
+
+      // Crowd pressure
+      if (gate.status === 'CRITICAL' || occupancyRatio >= 0.90 || lowerMsg.includes('surge') || lowerMsg.includes('crush') || lowerMsg.includes('bottleneck')) {
+        scores.CROWD_BOTTLENECK += 3;
+      }
+      if (occupancyRatio >= 0.75 && occupancyRatio < 0.90) {
+        scores.CROWD_BOTTLENECK += 1;
+      }
+
+      // Accessibility
+      if (stepFreeRequired || lowerMsg.includes('wheelchair') || lowerMsg.includes('walker') || lowerMsg.includes('stroller') || lowerMsg.includes('stairs')) {
+        scores.ACCESSIBILITY_REQUEST += 3;
+      }
+
+      // Default wayfinding weight
+      if (Object.values(scores).every(v => v === 0)) {
+        scores.WAYFINDING = 1;
+      }
+
+      // Pick highest-scoring category
       let threatCategory = 'WAYFINDING';
+      let maxScore = -1;
+      for (const [k, v] of Object.entries(scores)) {
+        if (v > maxScore) {
+          maxScore = v;
+          threatCategory = k;
+        }
+      }
+
+      // Map threat -> triage & tone
+      let triageLevel = 'INFO';
       let urgencyTone = 'CASUAL';
 
-      const lowerMsg = sanitizedMsg.toLowerCase();
-      const occupancyRatio = gate.occupancy / gate.capacity;
-
-      if (lowerMsg.includes('dizzy') || lowerMsg.includes('help') || lowerMsg.includes('fainted') || lowerMsg.includes('chest') || lowerMsg.includes('fall')) {
+      if (threatCategory === 'MEDICAL_EMERGENCY') {
         triageLevel = 'CRITICAL';
-        threatCategory = 'MEDICAL_EMERGENCY';
         urgencyTone = 'URGENT_CALM';
-      } else if (gate.status === 'CRITICAL' || lowerMsg.includes('surge') || lowerMsg.includes('crush') || lowerMsg.includes('bottleneck') || occupancyRatio >= 0.90) {
-        triageLevel = 'CRITICAL';
-        threatCategory = 'CROWD_BOTTLENECK';
+      } else if (threatCategory === 'CROWD_BOTTLENECK') {
+        triageLevel = occupancyRatio >= 0.90 ? 'CRITICAL' : 'WARNING';
         urgencyTone = 'URGENT_CALM';
-      } else if (stepFreeRequired || lowerMsg.includes('wheelchair') || lowerMsg.includes('stairs') || lowerMsg.includes('stroller')) {
+      } else if (threatCategory === 'ACCESSIBILITY_REQUEST') {
         triageLevel = 'WARNING';
-        threatCategory = 'ACCESSIBILITY_REQUEST';
         urgencyTone = 'DIPLOMATIC';
       }
 
@@ -190,7 +228,17 @@ Produce a JSON response matching this schema:
           translatedDirective: targetTrans.text,
           volunteerSpokenScript: targetTrans.script
         },
-        fallbackStrategy: `If ${spatialGateName} occupancy rises above 75%, trigger failover to secondary concourse and notify Steward Team 4.`
+        fallbackStrategy: `If ${spatialGateName} occupancy rises above 75%, trigger failover to secondary concourse and notify Steward Team 4.`,
+        algorithmProvenance: {
+          binarySearchUsed: true,
+          quadTreeUsed: Boolean(quadTreeResult?.nearest),
+          spatialGateSelected: spatialGateName,
+          complexity: {
+            gateLookup: 'O(log N)',
+            spatialRouting: 'O(log N)',
+            prediction: 'O(1)'
+          }
+        }
       };
     }
 
