@@ -225,7 +225,7 @@ class VolunteerCopilotApp {
     const container = document.getElementById('test-suite-results-box');
     if (!container) return;
 
-    container.innerHTML = `<div style="font-size:12px; color:var(--color-primary); margin-top:8px;">⏳ Executing 5 Edge-Case Validation Scenarios...</div>`;
+    container.innerHTML = `<div style="font-size:12px; color:var(--color-primary); margin-top:8px;">⏳ Executing 8 Edge-Case Validation Scenarios...</div>`;
 
     const apiKey = document.getElementById('gemini-api-key-input')?.value || null;
     const results = await this.juryPortal.runEdgeCaseTestSuite(this.gates, this.aiEngine, apiKey);

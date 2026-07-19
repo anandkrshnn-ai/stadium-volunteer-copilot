@@ -117,13 +117,16 @@ To satisfy high-performance efficiency requirements, Volunteer Copilot avoids \(
 
 ### 4. Automated Validation & Edge-Case Suite
 
-The **Automated Edge Case Test Suite** (with async/await and Pass/Fail badges) covers:
+The **Automated Edge Case Test Suite** (with async/await and Pass/Fail badges) covers 8 comprehensive scenarios:
 
 1. Medical distress keyword escalation (“dizzy”, “fainted”, “chest pain”).  
 2. 99% extreme occupancy surge at Gate C.  
 3. Step‑free accessibility enforcement for wheelchair users.  
 4. Multilingual register adaptation (e.g., formal Arabic script).  
-5. Malformed / malicious input sanitization (XSS payload stripping).
+5. Malformed / malicious input sanitization (XSS payload stripping).  
+6. Low occupancy boundary condition handling.  
+7. 300% sudden ingress flow surge detection.  
+8. QuadTree spatial failover route resolution.
 
 ### 5. Accessibility & Inclusivity
 
@@ -140,7 +143,7 @@ Evaluators are not limited to predefined data.
 In the **Jury Data Upload Portal**, judges can:
 
 1. Drag & drop custom `.csv` or `.json` stadium telemetry files.  
-2. Click **“🧪 Run Automated Edge Case Suite”** to see 5 scenarios with live Pass/Fail results.  
+2. Click **“🧪 Run Automated Edge Case Suite”** to see 8 scenarios with live Pass/Fail results.  
 3. Click **“⚡ Run 1,000‑Query Benchmark”** to measure QuadTree throughput on their own machine.
 
 ***
