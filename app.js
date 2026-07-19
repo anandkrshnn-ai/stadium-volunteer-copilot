@@ -311,7 +311,11 @@ class VolunteerCopilotApp {
 
     // Field Pitch
     ctx.beginPath();
-    ctx.roundRect(w / 2 - 70, h / 2 - 45, 140, 90, 8);
+    if (typeof ctx.roundRect === 'function') {
+      ctx.roundRect(w / 2 - 70, h / 2 - 45, 140, 90, 8);
+    } else {
+      ctx.rect(w / 2 - 70, h / 2 - 45, 140, 90);
+    }
     ctx.fillStyle = 'rgba(67, 122, 34, 0.25)';
     ctx.strokeStyle = 'rgba(124, 193, 90, 0.5)';
     ctx.lineWidth = 2;
