@@ -1,0 +1,36 @@
+{
+  "tournament": "FIFA World Cup 2026 - Quarter Final",
+  "stadium": "MetLife Stadium, New Jersey",
+  "timestamp": "2026-07-19T17:00:00Z",
+  "total_capacity": 82500,
+  "current_stadium_occupancy": 71840,
+  "gates": [
+    { "id": "G01", "name": "Gate A - North Concourse", "capacity": 12000, "occupancy": 9840, "flow_rate": 420, "status": "CRITICAL", "step_free": true, "x": 180, "y": 80 },
+    { "id": "G02", "name": "Gate B - East Loop", "capacity": 15000, "occupancy": 6300, "flow_rate": 180, "status": "NORMAL", "step_free": true, "x": 340, "y": 140 },
+    { "id": "G03", "name": "Gate C - Metro Express", "capacity": 18000, "occupancy": 16560, "flow_rate": 790, "status": "CRITICAL", "step_free": false, "x": 360, "y": 310 },
+    { "id": "G04", "name": "Gate D - South Concourse", "capacity": 14000, "occupancy": 8120, "flow_rate": 240, "status": "ELEVATED", "step_free": true, "x": 280, "y": 420 },
+    { "id": "G05", "name": "Gate E - West Family Plaza", "capacity": 10000, "occupancy": 3200, "flow_rate": 90, "status": "LOW", "step_free": true, "x": 120, "y": 380 },
+    { "id": "G06", "name": "Gate F - VIP & Media", "capacity": 5000, "occupancy": 1450, "flow_rate": 45, "status": "NORMAL", "step_free": true, "x": 60, "y": 240 },
+    { "id": "G07", "name": "Gate G - Metro Overflow", "capacity": 16000, "occupancy": 14080, "flow_rate": 610, "status": "ELEVATED", "step_free": false, "x": 320, "y": 230 },
+    { "id": "G08", "name": "Gate H - Transit Hub", "capacity": 13000, "occupancy": 4160, "flow_rate": 110, "status": "NORMAL", "step_free": true, "x": 100, "y": 140 }
+  ],
+  "active_volunteers": 42,
+  "incidents": [
+    {
+      "id": "INC-802",
+      "gate_id": "G03",
+      "type": "CROWD_BOTTLENECK",
+      "urgency": "HIGH",
+      "message_raw": "Huge surge from Line B metro train. Fans piling up at Gate C turnstiles.",
+      "timestamp": "16:58:12"
+    },
+    {
+      "id": "INC-805",
+      "gate_id": "G05",
+      "type": "ACCESSIBILITY_REQUEST",
+      "urgency": "MEDIUM",
+      "message_raw": "Wheelchair spectator needs step-free access assistance away from stairs.",
+      "timestamp": "16:59:05"
+    }
+  ]
+}

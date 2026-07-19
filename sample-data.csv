@@ -1,0 +1,9 @@
+gate_id,gate_name,capacity_max,current_occupancy,flow_rate_per_min,status,nearest_metro_distance_m,step_free_access
+G01,Gate A - North Concourse,12000,9840,420,CRITICAL,120,true
+G02,Gate B - East Loop,15000,6300,180,NORMAL,350,true
+G03,Gate C - Metro Express,18000,16560,790,CRITICAL,45,false
+G04,Gate D - South Concourse,14000,8120,240,ELEVATED,420,true
+G05,Gate E - West Family Plaza,10000,3200,90,LOW,550,true
+G06,Gate F - VIP & Media,5000,1450,45,NORMAL,200,true
+G07,Gate G - Metro Overflow,16000,14080,610,ELEVATED,80,false
+G08,Gate H - Transit Hub,13000,4160,110,NORMAL,600,true
