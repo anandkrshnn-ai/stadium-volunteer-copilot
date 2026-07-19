@@ -124,10 +124,10 @@ class VolunteerCopilotApp {
       });
     }
 
-    // Automated Edge Case Suite Runner Button
+    // Automated Edge Case Suite Runner Button (ASYNC AWAITED)
     const runTestSuiteBtn = document.getElementById('btn-run-test-suite');
     if (runTestSuiteBtn) {
-      runTestSuiteBtn.addEventListener('click', () => this.runTestSuiteUI());
+      runTestSuiteBtn.addEventListener('click', async () => await this.runTestSuiteUI());
     }
 
     // 1000-Query Benchmark Runner Button
@@ -184,7 +184,6 @@ class VolunteerCopilotApp {
     // Actively query Spatial QuadTree for nearest step-free gate
     const quadTreeSearchResult = this.quadTree.findNearest(this.selectedGate.x, this.selectedGate.y, 180);
 
-    // Update QuadTree metrics UI display
     const qtDisplay = document.getElementById('quadtree-metrics-display');
     if (qtDisplay && quadTreeSearchResult.nearest) {
       qtDisplay.textContent = `Spatial QuadTree: Nearest Gate ${quadTreeSearchResult.nearest.data.id} (${quadTreeSearchResult.distancePx}px away) resolved in ${quadTreeSearchResult.executionTimeMs}ms`;
@@ -199,7 +198,6 @@ class VolunteerCopilotApp {
       apiKey
     });
 
-    // Safe DOM Rendering
     const codeDisplay = document.getElementById('xai-code-output');
     if (codeDisplay) {
       codeDisplay.textContent = JSON.stringify(result.decisionContract, null, 2);
@@ -223,10 +221,14 @@ class VolunteerCopilotApp {
     }
   }
 
-  runTestSuiteUI() {
-    const results = this.juryPortal.runEdgeCaseTestSuite(this.gates, this.aiEngine);
+  async runTestSuiteUI() {
     const container = document.getElementById('test-suite-results-box');
     if (!container) return;
+
+    container.innerHTML = `<div style="font-size:12px; color:var(--color-primary); margin-top:8px;">⏳ Executing 5 Edge-Case Validation Scenarios...</div>`;
+
+    const apiKey = document.getElementById('gemini-api-key-input')?.value || null;
+    const results = await this.juryPortal.runEdgeCaseTestSuite(this.gates, this.aiEngine, apiKey);
 
     const passCount = results.filter(r => r.passed).length;
     const html = `

@@ -1,6 +1,7 @@
 /**
  * Jury Data Upload, Edge Case Testing & Benchmark Engine
  * Allows hackathon evaluators to drop custom CSV/JSON files, run automated edge case suites, and benchmark performance.
+ * Fully async-supported for reliable test execution against local & live Gemini API engines.
  */
 
 import { sanitizeInput } from './ai-engine.js';
@@ -103,48 +104,49 @@ export class JuryDataPortal {
   }
 
   /**
-   * AUTOMATED EDGE CASE TEST SUITE (100% Score Category 4 Upgrade)
+   * AUTOMATED EDGE CASE TEST SUITE - PROPERLY ASYNC AWAITED
    */
-  runEdgeCaseTestSuite(gates, aiEngine) {
+  async runEdgeCaseTestSuite(gates, aiEngine, apiKey = null) {
     const testCases = [
       {
         name: "Medical Distress Keyword Escalation",
-        input: { gate: gates[0], fanMessage: "Help! Spectator is dizzy and fainted near gate entrance.", targetLanguage: "en" },
+        input: { gate: gates[0], fanMessage: "Help! Spectator is dizzy and fainted near gate entrance.", targetLanguage: "en", apiKey },
         validate: (res) => res.decisionContract.triageLevel === "CRITICAL" && res.decisionContract.threatCategory === "MEDICAL_EMERGENCY"
       },
       {
         name: "99% Extreme Occupancy Bottleneck Surge",
-        input: { gate: { ...gates[2], occupancy: 17820, capacity: 18000, status: "CRITICAL" }, fanMessage: "Massive train arrival crowd.", targetLanguage: "en" },
+        input: { gate: { ...gates[2], occupancy: 17820, capacity: 18000, status: "CRITICAL" }, fanMessage: "Massive train arrival crowd.", targetLanguage: "en", apiKey },
         validate: (res) => res.decisionContract.triageLevel === "CRITICAL" && res.decisionContract.threatCategory === "CROWD_BOTTLENECK"
       },
       {
         name: "Step-Free Accessibility Filter",
-        input: { gate: gates[2], fanMessage: "Wheelchair fan needs step-free access", stepFreeRequired: true, targetLanguage: "en" },
+        input: { gate: gates[2], fanMessage: "Wheelchair fan needs step-free access", stepFreeRequired: true, targetLanguage: "en", apiKey },
         validate: (res) => res.decisionContract.threatCategory === "ACCESSIBILITY_REQUEST"
       },
       {
         name: "Multilingual Register Adaptation (Arabic Formal)",
-        input: { gate: gates[1], fanMessage: "Where is the main entrance?", targetLanguage: "ar" },
+        input: { gate: gates[1], fanMessage: "Where is the main entrance?", targetLanguage: "ar", apiKey },
         validate: (res) => res.decisionContract.multilingualOutput.targetLanguage === "ar" && res.decisionContract.multilingualOutput.volunteerSpokenScript.length > 5
       },
       {
         name: "Malformed & Malicious Input Sanitization",
-        input: { gate: gates[0], fanMessage: "<script>alert('XSS')</script>How do I find my seat?", targetLanguage: "en" },
+        input: { gate: gates[0], fanMessage: "<script>alert('XSS')</script>How do I find my seat?", targetLanguage: "en", apiKey },
         validate: (res) => !res.decisionContract.primaryReasoning.some(r => r.includes('<script>')) && res.metadata.securitySanitized === true
       }
     ];
 
-    const results = testCases.map(tc => {
-      const res = aiEngine.generateXAIDecision(tc.input);
+    const results = [];
+    for (const tc of testCases) {
+      const res = await aiEngine.generateXAIDecision(tc.input);
       const passed = tc.validate(res);
-      return { name: tc.name, passed, latencyMs: res.metadata.latencyMs };
-    });
+      results.push({ name: tc.name, passed, latencyMs: res.metadata.latencyMs });
+    }
 
     return results;
   }
 
   /**
-   * 1,000-QUERY BENCHMARK STRESS TEST (100% Score Category 3 Upgrade)
+   * 1,000-QUERY BENCHMARK STRESS TEST
    */
   run1000QueryBenchmark(gates) {
     const startTime = performance.now();
