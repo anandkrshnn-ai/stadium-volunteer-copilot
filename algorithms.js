@@ -1,54 +1,65 @@
 /**
- * High-Performance Algorithmic Engine for Stadium Volunteer Copilot
- * Features O(log N) Binary Search Threshold Lookup, O(log N) Spatial QuadTree Indexing,
- * and Exponential Moving Average (EMA) Predictive Flow Projection.
+ * Algorithmic Engine for Stadium Volunteer Copilot
+ * Implements Binary Search lookups over pre-indexed gate sorted arrays,
+ * 2D Spatial QuadTree node searching, and linear ingress flow projection.
  *
  * @module Algorithms Engine
  */
 
-// -------------------------------------------------------------
-// 1. Binary Search Engine for Gate Occupancy & Flow Rates: O(log N)
-// -------------------------------------------------------------
-
 /**
- * Gate object data structure
+ * Gate object data structure representing stadium IoT telemetry.
  * @typedef {Object} StadiumGate
- * @property {string} id - Unique Gate ID (e.g. G01)
- * @property {string} name - Gate Name
- * @property {number} capacity - Maximum capacity
- * @property {number} occupancy - Current occupancy count
- * @property {number} flow_rate - Flow rate in fans per minute
+ * @property {string} id - Unique Gate Identifier (e.g. G01)
+ * @property {string} name - Human-readable gate name
+ * @property {number} capacity - Maximum crowd capacity
+ * @property {number} occupancy - Current crowd occupancy count
+ * @property {number} flow_rate - Turnstile flow rate in fans per minute
  * @property {string} status - Operational status (CRITICAL | ELEVATED | NORMAL | LOW)
  * @property {boolean} step_free - Step-free wheelchair accessibility flag
- * @property {number} x - 2D Map Coordinate X
- * @property {number} y - 2D Map Coordinate Y
+ * @property {number} x - 2D Map Coordinate X (pixels)
+ * @property {number} y - 2D Map Coordinate Y (pixels)
  */
 
 export class GateBinarySearch {
   /**
-   * Constructs the Binary Search index engine
-   * @param {StadiumGate[]} [gates=[]] - Initial list of stadium gates
+   * Constructs the Binary Search index engine.
+   * @param {StadiumGate[]} [gates=[]] - Initial array of stadium gates
    */
   constructor(gates = []) {
     this.updateGates(gates);
   }
 
   /**
-   * Sorts and updates internal search indices
-   * @param {StadiumGate[]} [gates=[]] - List of stadium gates
+   * Constructs and updates pre-sorted indices for binary search operations.
+   * Maintains separate sorted arrays for general occupancy and step-free occupancy.
+   * Complexity: O(N log N) during initialization.
+   *
+   * @param {StadiumGate[]} [gates=[]] - Array of stadium gates
    */
   updateGates(gates = []) {
     if (!Array.isArray(gates)) return;
-    // Sort gates by ID for binary search lookups: O(N log N)
+
+    // Index 1: Sorted by Gate ID for direct ID lookups: O(N log N)
     this.gatesById = [...gates].sort((a, b) => a.id.localeCompare(b.id));
-    // Sort gates by occupancy ratio for threshold queries: O(N log N)
-    this.gatesByOccupancy = [...gates].sort((a, b) => (a.occupancy / a.capacity) - (b.occupancy / b.capacity));
+
+    // Index 2: Sorted by Occupancy Ratio (all gates): O(N log N)
+    this.gatesByOccupancy = [...gates].sort(
+      (a, b) => (a.occupancy / a.capacity) - (b.occupancy / b.capacity)
+    );
+
+    // Index 3: Sorted by Occupancy Ratio (step-free accessible gates only): O(N log N)
+    this.gatesByStepFreeOccupancy = gates
+      .filter(g => g.step_free)
+      .sort((a, b) => (a.occupancy / a.capacity) - (b.occupancy / b.capacity));
   }
 
   /**
-   * Binary Search to find a gate by ID in O(log N) time
-   * @param {string} gateId - Unique Gate ID to search for
-   * @returns {Object} Search result containing found gate, step count, latency, and complexity
+   * Binary Search lookup by Gate ID.
+   * Time Complexity: O(log N)
+   * Space Complexity: O(1)
+   *
+   * @param {string} gateId - Target Gate ID
+   * @returns {Object} Result payload containing found gate, step count, latency, and time complexity
    */
   findGateById(gateId) {
     const startTime = performance.now();
@@ -90,47 +101,50 @@ export class GateBinarySearch {
   }
 
   /**
-   * True O(log N) Binary Search threshold lookup for lowest occupancy gate
-   * @param {number} [maxRatioAllowed=0.80] - Maximum occupancy ratio threshold
-   * @param {boolean} [stepFreeOnly=false] - Restrict to step-free accessible gates
-   * @returns {Object} Result containing best gate candidate and execution metrics
+   * Binary Search threshold lookup for lowest occupancy gate matching criteria.
+   * Operates directly over pre-sorted target arrays to avoid post-filtering.
+   * Time Complexity: O(log N) binary search for threshold cutoff + O(1) index access
+   * Space Complexity: O(1)
+   *
+   * @param {number} [maxRatioAllowed=0.80] - Maximum occupancy ratio threshold (0.0 to 1.0)
+   * @param {boolean} [stepFreeOnly=false] - Restrict search to step-free accessible gates
+   * @returns {Object} Result object with selected gate candidate and execution metrics
    */
   findLowestOccupancyGate(maxRatioAllowed = 0.80, stepFreeOnly = false) {
     const startTime = performance.now();
-    if (this.gatesByOccupancy.length === 0) {
-      return { bestGate: null, candidatesCount: 0, executionTimeMs: 0.01, complexity: 'O(log N)' };
+    const targetArray = stepFreeOnly ? this.gatesByStepFreeOccupancy : this.gatesByOccupancy;
+
+    if (!targetArray || targetArray.length === 0) {
+      const fallback = this.gatesByOccupancy.length > 0 ? this.gatesByOccupancy[0] : null;
+      const endTime = performance.now();
+      return { bestGate: fallback, candidatesCount: 0, executionTimeMs: Number((endTime - startTime).toFixed(3)), complexity: 'O(log N)' };
     }
 
-    // Binary search for highest index where (occupancy/capacity) <= maxRatioAllowed: O(log N)
+    // Binary search for highest index matching ratio threshold: O(log N)
     let low = 0;
-    let high = this.gatesByOccupancy.length - 1;
+    let high = targetArray.length - 1;
     let cutoffIdx = -1;
 
     while (low <= high) {
       const mid = Math.floor((low + high) / 2);
-      const ratio = this.gatesByOccupancy[mid].occupancy / this.gatesByOccupancy[mid].capacity;
+      const ratio = targetArray[mid].occupancy / targetArray[mid].capacity;
 
       if (ratio <= maxRatioAllowed) {
         cutoffIdx = mid;
-        low = mid + 1; // Try to find a higher index matching threshold
+        low = mid + 1;
       } else {
         high = mid - 1;
       }
     }
 
-    // Slice candidates up to cutoffIdx: O(1) bound resolution
-    let candidates = cutoffIdx >= 0 ? this.gatesByOccupancy.slice(0, cutoffIdx + 1) : [];
-
-    if (stepFreeOnly) {
-      candidates = candidates.filter(g => g.step_free);
-    }
-
+    // Lowest occupancy matching gate is targetArray[0] if cutoffIdx >= 0, else fallback to lowest overall
+    const resultGate = cutoffIdx >= 0 ? targetArray[0] : targetArray[0];
+    const candidatesCount = cutoffIdx >= 0 ? cutoffIdx + 1 : 0;
     const endTime = performance.now();
-    const resultGate = candidates.length > 0 ? candidates[0] : (stepFreeOnly ? this.gatesByOccupancy.find(g => g.step_free) || this.gatesByOccupancy[0] : this.gatesByOccupancy[0]);
 
     return {
       bestGate: resultGate,
-      candidatesCount: candidates.length,
+      candidatesCount,
       executionTimeMs: Math.max(0.01, Number((endTime - startTime).toFixed(3))),
       complexity: 'O(log N)'
     };
@@ -138,17 +152,17 @@ export class GateBinarySearch {
 }
 
 // -------------------------------------------------------------
-// 2. Spatial QuadTree for Volunteer & Gate Distance Lookup: O(log N)
+// 2. Spatial QuadTree for Spatial Range & Nearest Neighbor Searching
 // -------------------------------------------------------------
 
 /**
- * 2D Spatial Point Class
+ * 2D Spatial Point representation.
  */
 export class Point {
   /**
-   * @param {number} x - X Coordinate
-   * @param {number} y - Y Coordinate
-   * @param {Object} [data={}] - Associated payload data
+   * @param {number} x - X coordinate
+   * @param {number} y - Y coordinate
+   * @param {Object} [data={}] - Associated payload object
    */
   constructor(x, y, data = {}) {
     this.x = Number(x);
@@ -158,14 +172,14 @@ export class Point {
 }
 
 /**
- * Axis-Aligned Bounding Box (AABB) Class
+ * Axis-Aligned Bounding Box (AABB) for spatial partitioning.
  */
 export class Rectangle {
   /**
-   * @param {number} x - Center X
-   * @param {number} y - Center Y
-   * @param {number} w - Half width
-   * @param {number} h - Half height
+   * @param {number} x - Center X coordinate
+   * @param {number} y - Center Y coordinate
+   * @param {number} w - Half-width
+   * @param {number} h - Half-height
    */
   constructor(x, y, w, h) {
     this.x = Number(x);
@@ -175,8 +189,8 @@ export class Rectangle {
   }
 
   /**
-   * Checks if point is inside boundary
-   * @param {Point} point - Target point
+   * Checks if a point lies within the bounding box.
+   * @param {Point} point - Point to test
    * @returns {boolean}
    */
   contains(point) {
@@ -189,8 +203,8 @@ export class Rectangle {
   }
 
   /**
-   * Checks if range intersects boundary
-   * @param {Rectangle} range - Target range
+   * Checks if another bounding box intersects with this one.
+   * @param {Rectangle} range - Range to test
    * @returns {boolean}
    */
   intersects(range) {
@@ -204,12 +218,13 @@ export class Rectangle {
 }
 
 /**
- * Spatial QuadTree Partitioning Class: O(log N) spatial lookups
+ * Spatial QuadTree data structure for 2D spatial indexing.
+ * Average Time Complexity: O(log N) for spatial range queries and nearest-neighbor lookups.
  */
 export class QuadTree {
   /**
-   * @param {Rectangle} boundary - Spatial boundary
-   * @param {number} [capacity=4] - Node capacity before subdivision
+   * @param {Rectangle} boundary - Spatial boundary for this node
+   * @param {number} [capacity=4] - Maximum point capacity before subdivision
    */
   constructor(boundary, capacity = 4) {
     this.boundary = boundary;
@@ -219,7 +234,7 @@ export class QuadTree {
   }
 
   /**
-   * Subdivides QuadTree node into 4 quadrants
+   * Subdivides current node into 4 quadrant children.
    */
   subdivide() {
     const { x, y, w, h } = this.boundary;
@@ -237,9 +252,11 @@ export class QuadTree {
   }
 
   /**
-   * Inserts point into QuadTree
+   * Inserts a point into the QuadTree.
+   * Time Complexity: O(log N) average
+   *
    * @param {Point} point - Point to insert
-   * @returns {boolean} Success status
+   * @returns {boolean} True if insertion succeeded
    */
   insert(point) {
     if (!this.boundary.contains(point)) {
@@ -264,10 +281,12 @@ export class QuadTree {
   }
 
   /**
-   * Queries points inside range
+   * Range query returning points within bounding box.
+   * Time Complexity: O(log N + K) where K is points found
+   *
    * @param {Rectangle} range - Search boundary
-   * @param {Point[]} [found=[]] - Accumulator array
-   * @returns {Point[]} Points in range
+   * @param {Point[]} [found=[]] - Accumulator
+   * @returns {Point[]}
    */
   query(range, found = []) {
     if (!this.boundary.intersects(range)) {
@@ -291,9 +310,11 @@ export class QuadTree {
   }
 
   /**
-   * Queries QuadTree for nearest step-free gate or volunteer pin in O(log N) time
-   * @param {number} targetX - Target X Coordinate
-   * @param {number} targetY - Target Y Coordinate
+   * Finds nearest neighbor point within a radius.
+   * Time Complexity: O(log N) average
+   *
+   * @param {number} targetX - Target X coordinate
+   * @param {number} targetY - Target Y coordinate
    * @param {number} [searchRadius=150] - Initial search radius in pixels
    * @returns {Object} Nearest neighbor result and execution metrics
    */
@@ -332,27 +353,29 @@ export class QuadTree {
 }
 
 // -------------------------------------------------------------
-// 3. Exponential Moving Average (EMA) Predictive Crowd Flow Projection
+// 3. Linear Flow Rate Ingress Projection Model
 // -------------------------------------------------------------
 
 /**
- * Predicts gate crowd density using 4-minute Exponential Moving Average (EMA) flow projection
+ * Computes projected gate occupancy using turnstile flow rate metrics.
+ * Time Complexity: O(1)
+ *
  * @param {StadiumGate} gate - Target gate object
  * @param {number} [minutesAhead=4] - Forecast horizon in minutes
- * @param {number} [alpha=0.3] - EMA smoothing factor
- * @returns {Object} Forecast results containing predicted occupancy and bottleneck risk
+ * @param {number} [multiplier=1.15] - Ingress flow adjustment factor
+ * @returns {Object} Flow projection metrics and bottleneck status
  */
-export function predictGateCrowdDensity(gate, minutesAhead = 4, alpha = 0.3) {
-  if (!gate) return { predictedRatio: 0, predictedStatus: 'NORMAL', isBottleneckRisk: false };
+export function predictGateCrowdDensity(gate, minutesAhead = 4, multiplier = 1.15) {
+  if (!gate) return { predictedRatio: "0.0", predictedStatus: 'NORMAL', isBottleneckRisk: false };
 
   const currentOccupancy = Number(gate.occupancy) || 0;
-  const flowRate = Number(gate.flow_rate) || 0; // fans per minute
+  const flowRate = Number(gate.flow_rate) || 0;
   const maxCap = Number(gate.capacity) || 12000;
 
-  // Apply EMA smoothing to flow projection: O(1)
-  const projectedSurge = (flowRate * minutesAhead) * (1 + alpha * 0.5);
+  // Linear ingress projection with flow multiplier: O(1)
+  const projectedSurge = flowRate * minutesAhead * multiplier;
   const predictedOccupancy = Math.min(maxCap, Math.round(currentOccupancy + projectedSurge));
-  const predictedRatio = (predictedOccupancy / maxCap);
+  const predictedRatio = predictedOccupancy / maxCap;
 
   let predictedStatus = 'NORMAL';
   if (predictedRatio >= 0.90) predictedStatus = 'CRITICAL';

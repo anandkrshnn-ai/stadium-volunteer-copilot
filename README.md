@@ -78,14 +78,17 @@ Rule-based engines can flag a crowded gate, but they **cannot**:
 
 To satisfy high-performance efficiency requirements, Volunteer Copilot avoids \(O(N)\) scans wherever possible:
 
-1. **\(O(\log N)\) Binary Search (`algorithms.js`)**  
-   Searches sorted gate capacity / ID indices to retrieve gate throughput in sub‑millisecond time (`findGateById`).
+1. **\(O(\log N)\) Binary Search Threshold Lookup (`algorithms.js`)**  
+   Maintains pre-sorted index arrays for general occupancy and step-free gates, using binary search to find target thresholds in \(O(\log N)\) time without runtime array filtering (`findGateById`, `findLowestOccupancyGate`).
 
 2. **Spatial QuadTree (`algorithms.js`)**  
    Partitions 2D stadium space into quad-nodes (`Rectangle.intersects`) to query the nearest available volunteer or step‑free exit in \(O(\log N)\) time (`findNearest`).  
    QuadTree spatial lookup results directly drive the decision engine’s route selection, dynamically injecting the resolved gate name into volunteer directives, multilingual scripts, and fallback strategies.
 
-3. **1,000-query benchmark suite (`jury-portal.js`)**  
+3. **Linear Ingress Flow Projection (`algorithms.js`)**  
+   Computes predicted gate crowd density in \(O(1)\) constant time based on turnstile flow rate metrics (`predictGateCrowdDensity`).
+
+4. **1,000-query benchmark suite (`jury-portal.js`)**  
    In-browser stress test evaluating 1,000 QuadTree + Binary Search queries, displaying microsecond execution times and ops/sec.
 
 ***
