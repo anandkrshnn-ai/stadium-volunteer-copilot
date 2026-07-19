@@ -120,16 +120,24 @@ To satisfy high-performance efficiency requirements, Volunteer Copilot avoids \(
 
 ### 4. Automated Validation & Edge-Case Suite
 
-The **Automated Edge Case Test Suite** (with async/await and Pass/Fail badges) covers 8 comprehensive scenarios:
+The **Automated Test Suite** (with async/await and Pass/Fail badges) covers 13 comprehensive test scenarios (5 Algorithmic Unit Tests + 8 Integration Tests):
 
-1. Medical distress keyword escalation (“dizzy”, “fainted”, “chest pain”).  
-2. 99% extreme occupancy surge at Gate C.  
-3. Step‑free accessibility enforcement for wheelchair users.  
-4. Multilingual register adaptation (e.g., formal Arabic script).  
-5. Malformed / malicious input sanitization (XSS payload stripping).  
-6. Low occupancy boundary condition handling.  
-7. 300% sudden ingress flow surge detection.  
-8. QuadTree spatial failover route resolution.
+**Algorithmic Unit Tests (5 Cases)**:
+1. `findGateById` Binary Search Lookup ($O(\log N)$)
+2. `findLowestOccupancyGate` Step-Free Binary Index Lookup ($O(\log N)$)
+3. `QuadTree.findNearest` Spatial Node Resolution ($O(\log N)$)
+4. `predictGateCrowdDensity` Ingress Density Predictor ($O(1)$)
+5. `sanitizeInput` Input Security Sanitization (XSS Stripping)
+
+**Integration Test Scenarios (8 Cases)**:
+6. Medical distress keyword escalation (“dizzy”, “fainted”, “chest pain”).  
+7. 99% extreme occupancy surge at Gate C.  
+8. Step‑free accessibility enforcement for wheelchair users.  
+9. Multilingual register adaptation (e.g., formal Arabic script).  
+10. Malformed / malicious input sanitization (XSS payload stripping).  
+11. Low occupancy boundary condition handling.  
+12. 300% sudden ingress flow surge detection.  
+13. QuadTree spatial failover route resolution.
 
 ### 5. Accessibility & Inclusivity
 
