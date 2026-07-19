@@ -114,6 +114,9 @@ Produce a JSON response matching this schema:
 
     // ========== LOCAL XAI FALLBACK ==========
     if (!decisionContract) {
+      const lowerMsg = sanitizedMsg.toLowerCase();
+      const occupancyRatio = (gate && gate.capacity > 0) ? (gate.occupancy / gate.capacity) : 0;
+
       // --- Multi-Factor Scoring Matrix ---
       const scores = {
         MEDICAL_EMERGENCY: 0,
