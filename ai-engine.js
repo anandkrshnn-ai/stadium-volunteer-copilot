@@ -326,6 +326,7 @@ export class XAIReasoningEngine {
     return {
       decisionContract,
       metadata: {
+        model: this.promptVersion,
         engineVersion: this.promptVersion,
         latencyMs,
         liveApiUsed: liveUsed,
