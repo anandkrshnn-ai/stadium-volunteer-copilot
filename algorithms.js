@@ -138,7 +138,7 @@ export class GateBinarySearch {
     }
 
     // Lowest occupancy matching gate is targetArray[0] if cutoffIdx >= 0, else fallback to lowest overall
-    const resultGate = cutoffIdx >= 0 ? targetArray[0] : targetArray[0];
+    const resultGate = targetArray.length > 0 ? targetArray[0] : null;
     const candidatesCount = cutoffIdx >= 0 ? cutoffIdx + 1 : 0;
     const endTime = performance.now();
 
