@@ -1,6 +1,7 @@
 /**
  * Explainable AI (XAI) & Multilingual Reasoning Engine for Volunteer Copilot
  * Supports Live Gemini API (gemini-1.5-flash / pro) with automatic local XAI Engine fallback.
+ * Uses QuadTree spatial search outputs directly to drive volunteer directives.
  */
 
 export function sanitizeInput(input, maxLength = 300) {
@@ -20,11 +21,11 @@ export function sanitizeInput(input, maxLength = 300) {
 
 export class XAIReasoningEngine {
   constructor() {
-    this.promptVersion = "v4.0 (Live Gemini API + QuadTree Spatial XAI)";
+    this.promptVersion = "v4.1 (Live Gemini API + QuadTree Spatial XAI Driven)";
   }
 
   /**
-   * Live Gemini 1.5 API call over HTTP REST
+   * Live Gemini 1.5 API call over HTTP REST with hardened JSON validation
    */
   async callLiveGeminiAPI({ apiKey, gate, fanMessage, targetLanguage, stepFreeRequired }) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
@@ -69,7 +70,19 @@ Produce a JSON response matching this schema:
     if (!response.ok) throw new Error(`Gemini API Error ${response.status}`);
     const data = await response.json();
     const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    return JSON.parse(rawText);
+
+    if (!rawText) {
+      throw new Error("Gemini response missing text content");
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch (e) {
+      throw new Error("Gemini response was not valid JSON");
+    }
+
+    return parsed;
   }
 
   /**
@@ -99,19 +112,20 @@ Produce a JSON response matching this schema:
       }
     }
 
-    // Local XAI Reasoning Engine Fallback (Deterministic & Fast)
+    // ========== LOCAL XAI FALLBACK ==========
     if (!decisionContract) {
       let triageLevel = 'INFO';
       let threatCategory = 'WAYFINDING';
       let urgencyTone = 'CASUAL';
 
       const lowerMsg = sanitizedMsg.toLowerCase();
+      const occupancyRatio = gate.occupancy / gate.capacity;
 
       if (lowerMsg.includes('dizzy') || lowerMsg.includes('help') || lowerMsg.includes('fainted') || lowerMsg.includes('chest') || lowerMsg.includes('fall')) {
         triageLevel = 'CRITICAL';
         threatCategory = 'MEDICAL_EMERGENCY';
         urgencyTone = 'URGENT_CALM';
-      } else if (gate.status === 'CRITICAL' || lowerMsg.includes('surge') || lowerMsg.includes('crush') || lowerMsg.includes('bottleneck') || (gate.occupancy / gate.capacity) >= 0.90) {
+      } else if (gate.status === 'CRITICAL' || lowerMsg.includes('surge') || lowerMsg.includes('crush') || lowerMsg.includes('bottleneck') || occupancyRatio >= 0.90) {
         triageLevel = 'CRITICAL';
         threatCategory = 'CROWD_BOTTLENECK';
         urgencyTone = 'URGENT_CALM';
@@ -121,30 +135,45 @@ Produce a JSON response matching this schema:
         urgencyTone = 'DIPLOMATIC';
       }
 
-      const spatialInfo = quadTreeResult?.nearest ? `QuadTree Spatial Index: Resolved nearest step-free gate (${quadTreeResult.nearest.data.id}) in ${quadTreeResult.executionTimeMs}ms (${quadTreeResult.distancePx}px distance).` : `Spatial Index: Active concourse route query.`;
+      // Use QuadTree result for real routing decisions
+      const spatialGateName = quadTreeResult?.nearest?.data?.name 
+        || quadTreeResult?.nearest?.data?.id 
+        || 'Gate B (East Loop)';
+
+      const spatialInfo = quadTreeResult?.nearest
+        ? `Spatial QuadTree: Nearest suitable gate resolved as ${spatialGateName} (${quadTreeResult.distancePx}px, ${quadTreeResult.executionTimeMs}ms).`
+        : `Spatial Index: Using default concourse routing.`;
 
       const reasoningChain = [
-        `IoT Telemetry Check: ${sanitizeInput(gate.name)} is at ${((gate.occupancy / gate.capacity) * 100).toFixed(1)}% capacity (Flow: ${gate.flow_rate} fans/min).`,
+        `IoT Telemetry Check: ${sanitizeInput(gate.name)} is at ${(occupancyRatio * 100).toFixed(1)}% capacity (Flow: ${gate.flow_rate} fans/min).`,
         spatialInfo,
-        `Intent & Tone Classification: Keyword analysis classified request as [${threatCategory}] requiring [${urgencyTone}] volunteer script.`,
-        `Optimal Action: Direct crowd flow away from congested gate towards nearest available gate.`
+        `Intent & Tone Classification: Classified as [${threatCategory}] requiring [${urgencyTone}] volunteer script.`
       ];
 
+      // Multi-factor reasoning when both pressure and accessibility apply
+      if ((gate.status === 'CRITICAL' || occupancyRatio >= 0.90) && stepFreeRequired) {
+        reasoningChain.push(
+          "Combined risk: Current gate is near critical capacity and not ideal for step-free routing. Prefer alternate accessible gate from spatial index."
+        );
+      }
+
+      reasoningChain.push(`Optimal Action: Route using spatially resolved gate ${spatialGateName}.`);
+
       const actionDirectives = {
-        MEDICAL_EMERGENCY: "Alert Medical Bay 2 immediately while guiding fan to shade at Sector 4. Reassure in calm tone.",
-        CROWD_BOTTLENECK: `Direct incoming fans away from ${sanitizeInput(gate.name)} to Gate B (East Loop). Display blue step-free signs.`,
-        ACCESSIBILITY_REQUEST: "Guide wheelchair spectator along RAMP B (North Ramp) directly to Elevator 3. Priority access active.",
-        WAYFINDING: `Direct fan to Gate E (West Family Plaza). Remind them entry impact is less than 3 minutes.`
+        MEDICAL_EMERGENCY: `Alert Medical Bay 2 immediately while guiding fan to shaded area near ${spatialGateName}. Reassure in calm tone.`,
+        CROWD_BOTTLENECK: `Direct incoming fans away from ${sanitizeInput(gate.name)} to ${spatialGateName}. Display blue step-free signs.`,
+        ACCESSIBILITY_REQUEST: `Guide wheelchair spectator via ${spatialGateName} using the marked ramp. Prioritize step-free path and elevator access.`,
+        WAYFINDING: `Direct fan to ${spatialGateName}. Remind them entry impact is less than 3 minutes.`
       };
 
       const actionText = actionDirectives[threatCategory] || actionDirectives.WAYFINDING;
 
       const translations = {
         en: { text: actionText, script: `Volunteer Script: "${actionText}"`, toneName: "English - Calm & Clear" },
-        es: { text: `Instrucción: Dirija a los aficionados hacia la Puerta B. El tiempo estimado de ingreso es de solo 3 minutos.`, script: `Guión en Español: "Por favor, diríjanse a la Puerta B por la rampa azul. La entrada es más rápida y segura."`, toneName: "Spanish - Clear & Direct" },
-        ar: { text: `توجيه المتطوعين: يُرجى توجيه الجماهير إلى البوابة B (الحلقة الشرقية) لتجنب الازدحام.`, script: `النص باللغة العربية: "أهلاً بكم، يُرجى التوجه إلى البوابة B عبر الممر الأزرق لدخول أسرع وأسهل."`, toneName: "Arabic - Formal & Reassuring" },
-        fr: { text: `Directive: Redirigez les spectateurs vers la Porte B. Accès PMR et fluide garanti.`, script: `Script en Français: "Bonjour, nous vous conseillons d'utiliser la Porte B par la rampe bleue."`, toneName: "French - Diplomatic" },
-        zh: { text: `志愿者指令：请引导观众前往B门（东环线）。该通道拥挤度低38%，并配备无障碍设施。`, script: `中文话术："您好！请由蓝色无障碍通道前往B门，入场仅需3分钟。"`, toneName: "Mandarin - Polite & Guidance-Oriented" }
+        es: { text: `Instrucción: Dirija a los aficionados hacia ${spatialGateName}. El tiempo estimado de ingreso es de solo 3 minutos.`, script: `Guión en Español: "Por favor, diríjanse a ${spatialGateName} por la rampa azul. La entrada es más rápida y segura."`, toneName: "Spanish - Clear & Direct" },
+        ar: { text: `توجيه المتطوعين: يُرجى توجيه الجماهير إلى ${spatialGateName} لتجنب الازدحام.`, script: `النص باللغة العربية: "أهلاً بكم، يُرجى التوجه إلى ${spatialGateName} عبر الممر الأزرق لدخول أسرع وأسهل."`, toneName: "Arabic - Formal & Reassuring" },
+        fr: { text: `Directive: Redirigez les spectateurs vers ${spatialGateName}. Accès PMR et fluide garanti.`, script: `Script en Français: "Bonjour, nous vous conseillons d'utiliser ${spatialGateName} par la rampe bleue."`, toneName: "French - Diplomatic" },
+        zh: { text: `志愿者指令：请引导观众前往 ${spatialGateName}。该通道拥挤度较低，并配备无障碍设施。`, script: `中文话术："您好！请由蓝色无障碍通道前往 ${spatialGateName}，入场仅需3分钟。"`, toneName: "Mandarin - Polite & Guidance-Oriented" }
       };
 
       const targetTrans = translations[sanitizedLang] || translations.en;
@@ -161,7 +190,7 @@ Produce a JSON response matching this schema:
           translatedDirective: targetTrans.text,
           volunteerSpokenScript: targetTrans.script
         },
-        fallbackStrategy: `If primary gate occupancy rises above 75%, trigger failover switch to secondary concourse and notify Steward Team 4.`
+        fallbackStrategy: `If ${spatialGateName} occupancy rises above 75%, trigger failover to secondary concourse and notify Steward Team 4.`
       };
     }
 
@@ -170,7 +199,7 @@ Produce a JSON response matching this schema:
 
     return {
       metadata: {
-        model: liveUsed ? "Gemini 1.5 Flash (Live API)" : "Gemini 1.5 Pro (Vertex AI Local Engine)",
+        model: liveUsed ? "Gemini 1.5 Flash (Cloud LLM)" : "Local XAI Reasoning Engine (Gemini-schema compatible)",
         promptVersion: this.promptVersion,
         latencyMs: liveUsed ? Math.round(executionLatencyMs) : Math.max(15, executionLatencyMs + 130),
         confidenceScore: liveUsed ? 0.98 : 0.96,

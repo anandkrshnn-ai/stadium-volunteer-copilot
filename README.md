@@ -63,7 +63,7 @@ To satisfy high-performance efficiency requirements, Volunteer Copilot avoids $O
 1. **$O(\log N)$ Binary Search (`algorithms.js`)**:
    Searches sorted gate capacity and timestamp indices to retrieve target gate throughput in sub-millisecond execution times (`findGateById`).
 2. **Spatial QuadTree (`algorithms.js`)**:
-   Partitions 2D stadium space into quad-nodes (`Rectangle.intersects`) to query the nearest available volunteer and step-free exit route in $O(\log N)$ time (`findNearest`). Results are displayed live on the Digital Twin UI banner.
+   Partitions 2D stadium space into quad-nodes (`Rectangle.intersects`) to query the nearest available volunteer and step-free exit route in $O(\log N)$ time (`findNearest`). QuadTree spatial lookup results directly drive the decision engine's route selection, dynamically injecting the resolved gate name into volunteer directives and multilingual scripts.
 3. **1,000-Query Benchmark Suite (`jury-portal.js`)**:
    Includes an in-browser stress test runner evaluating 1,000 QuadTree & Binary Search queries, displaying real microsecond execution times and throughput (ops/sec).
 

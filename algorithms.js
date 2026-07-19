@@ -74,7 +74,7 @@ export class GateBinarySearch {
       bestGate: resultGate,
       candidatesCount: candidates.length,
       executionTimeMs: Math.max(0.01, Number((endTime - startTime).toFixed(3))),
-      complexity: 'O(log N)'
+      complexity: 'O(N)'
     };
   }
 }
