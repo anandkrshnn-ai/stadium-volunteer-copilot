@@ -42,15 +42,12 @@ export class GateBinarySearch {
     // Index 1: Sorted by Gate ID for binary search lookups: O(N log N)
     this.gatesById = [...gates].sort((a, b) => a.id.localeCompare(b.id));
 
-    // Index 2: O(1) Hash Map index for direct O(1) constant time lookups
-    this.gateMapById = new Map(gates.map(g => [g.id, g]));
-
-    // Index 3: Sorted by Occupancy Ratio (all gates): O(N log N)
+    // Index 2: Sorted by Occupancy Ratio (all gates): O(N log N)
     this.gatesByOccupancy = [...gates].sort(
       (a, b) => (a.occupancy / a.capacity) - (b.occupancy / b.capacity)
     );
 
-    // Index 4: Sorted by Occupancy Ratio (step-free accessible gates only): O(N log N)
+    // Index 3: Sorted by Occupancy Ratio (step-free accessible gates only): O(N log N)
     this.gatesByStepFreeOccupancy = gates
       .filter(g => g.step_free)
       .sort((a, b) => (a.occupancy / a.capacity) - (b.occupancy / b.capacity));
@@ -313,7 +310,7 @@ export class QuadTree {
   }
 
   /**
-   * Finds nearest neighbor point within a radius.
+   * Finds nearest neighbor point within a radius with spatial query memoization.
    * Time Complexity: O(log N) average
    *
    * @param {number} targetX - Target X coordinate
@@ -333,7 +330,7 @@ export class QuadTree {
       return {
         ...cached,
         executionTimeMs: 0.001,
-        complexity: 'O(1) (Spatial Cache Hit)'
+        complexity: 'O(1) (Spatial Memoization)'
       };
     }
 
