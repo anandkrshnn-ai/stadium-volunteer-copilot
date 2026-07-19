@@ -1,10 +1,8 @@
-# Stadium Volunteer Copilot (PromptWars Challenge 4 Winner Entry)
+# Stadium Volunteer Copilot
 
-> **Official PromptWars Challenge 4 Submission**  
+> **PromptWars Challenge 4 Submission**  
 > **Vertical**: Mega-Event Stadium Operations & Venue Management  
-> **Persona**: The Frontline Volunteer ("The Underrated Frontliner" managing 90,000+ spectator crowds)  
-> **Repository Rules Compliance**: Single Branch (`main`) | Public Repo | Size: < 0.1 MB (Limit: 10 MB)  
-> **Target Evaluation Score**: 98%+ Across All Categories
+> **Target Persona**: Frontline Stadium Volunteer ("The Underrated Frontliner" managing 90,000+ spectator crowds)
 
 ---
 
@@ -60,7 +58,7 @@ Rule-based engines can flag a crowded gate, but they **cannot**:
 
 ## ⚙️ Engineering & Algorithmic Rigor
 
-To satisfy strict hackathon efficiency requirements, Volunteer Copilot avoids $O(N)$ linear loops across stadium telemetry:
+To satisfy high-performance efficiency requirements, Volunteer Copilot avoids $O(N)$ linear loops across stadium telemetry:
 
 1. **$O(\log N)$ Binary Search (`algorithms.js`)**:
    Searches sorted gate capacity and timestamp indices to retrieve target gate throughput in sub-millisecond execution times (`findGateById`).
@@ -71,30 +69,30 @@ To satisfy strict hackathon efficiency requirements, Volunteer Copilot avoids $O
 
 ---
 
-## 🛡️ Evaluation Focus Areas (98%+ Audit Compliance)
+## 🛡️ Core System Standards & Engineering Design
 
-### 1. Code Quality (98%+)
+### 1. Code Quality & Architecture
 * Modular JavaScript ESM split: [`algorithms.js`](file:///c:/Users/Admin/Documents/GitHub/stadium-volunteer-copilot/algorithms.js), [`ai-engine.js`](file:///c:/Users/Admin/Documents/GitHub/stadium-volunteer-copilot/ai-engine.js), [`jury-portal.js`](file:///c:/Users/Admin/Documents/GitHub/stadium-volunteer-copilot/jury-portal.js), [`app.js`](file:///c:/Users/Admin/Documents/GitHub/stadium-volunteer-copilot/app.js).
-* Zero framework bloat—vanilla HTML5 Canvas, modern CSS custom properties, and native Web APIs keep repository size under **0.1 MB** (100x below the 10 MB limit).
+* Zero framework bloat—vanilla HTML5 Canvas, modern CSS custom properties, and native Web APIs keep repository size lightweight (< 0.1 MB).
 
-### 2. Security (98%+)
+### 2. Security & Data Protection
 * **Strict Input Sanitization (`sanitizeInput`)**: Strips HTML scripts/tags, truncates length (max 300 chars), and escapes HTML entities (`&`, `<`, `>`, `"`, `'`) across both fan free-text inputs and uploaded CSV/JSON datasets.
 * **XSS Prevention**: DOM text node escaping ensures zero script injection vectors when rendering evaluator-uploaded data.
 * **Zero Hardcoded Secrets**: Client-side safe structure with zero stored credentials.
 
-### 3. Resource Efficiency (98%+)
+### 3. Resource Efficiency & Throughput
 * **Measured Real Performance**: Uses `performance.now()` for precise microsecond algorithm execution timing.
 * **Sub-200ms Latency**: Real-time HUD ticker monitors total decision contract latency (average: 130–165ms).
 
-### 4. Testing & Automated Edge-Case Suite (98%+)
-Includes an **Automated Edge Case Test Suite** with proper async/await resolution and green/red Pass/Fail visual badges in the UI, testing 5 mandatory scenarios:
+### 4. Automated Validation & Edge-Case Suite
+Includes an **Automated Edge Case Test Suite** with proper async/await resolution and green/red Pass/Fail visual badges in the UI, testing 5 key scenarios:
 1. **Medical Distress Keyword Escalation** ("dizzy", "fainted", "chest pain").
 2. **99% Extreme Occupancy Surge** (Gate C critical capacity).
 3. **Step-Free Accessibility Filter** (wheelchair step-free enforcement).
 4. **Multilingual Register Adaptation** (Arabic formal script generation).
 5. **Malformed / Malicious Input Sanitization** (XSS script payload stripping).
 
-### 5. Accessibility & Inclusivity (98%+)
+### 5. Accessibility & Inclusivity
 * **ARIA Live Regions (`aria-live="polite"`)**: Dynamic volunteer action directives and alert updates are automatically announced to screen readers.
 * **Canvas Fallback Description**: Canvas element includes `aria-label`, `role="img"`, and hidden textual fallback description for visually impaired users.
 * **WCAG 2.2 AA Compliant**: Accessible skip link (`Skip to Main Content`), visible keyboard focus rings, and high-contrast color badges (`CRITICAL`, `ELEVATED`, `NORMAL`).
@@ -112,10 +110,10 @@ Inside the **Jury Data Upload Portal**, judges can:
 
 ---
 
-## 💡 Assumptions Made
+## 💡 Operational Assumptions
 
 1. Stadium gates report turnstile throughput counts every 10–30 seconds.
-2. Edge nodes perform initial noise reduction before sending payload summaries to Firebase.
+2. Edge nodes perform initial noise reduction before sending payload summaries.
 3. Volunteers carry mobile PWA handsets capable of rendering HTML5 Canvas and offline cached directives.
 
 ---
@@ -132,14 +130,3 @@ Inside the **Jury Data Upload Portal**, judges can:
    python -m http.server 8000
    ```
 3. Open `http://localhost:8000` in your web browser.
-
----
-
-## 🏅 Hackathon Submission Compliance Summary
-
-- [x] **Public GitHub Repository**: `https://github.com/anandkrshnn-ai/stadium-volunteer-copilot`
-- [x] **Single Branch (`main`)**: Yes
-- [x] **Repository Size**: **< 0.1 MB** (Limit: 10 MB)
-- [x] **Chosen Vertical**: Stadium Operations & Volunteer Assistance
-- [x] **Sub-200ms Latency Target**: Achieved (130–165ms)
-- [x] **Dual Live Gemini API + Offline XAI Engine**: Active & Async Verified
